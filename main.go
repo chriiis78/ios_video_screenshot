@@ -50,7 +50,7 @@ func stream( pullSpec string, udid string, tunName string, port string, secure b
     stopChannel2 := make( chan bool )
     waitForSigInt( stopChannel, stopChannel2 )
     
-    startJpegServer( pullSock, stopChannel2, port, tunName, secure, cert, key, coordinator, udid )
+    startScreenshotServer( pullSock, stopChannel2, port, tunName, secure, cert, key, coordinator, udid )
         
     <- stopChannel
 }

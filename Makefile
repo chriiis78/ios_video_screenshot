@@ -1,4 +1,4 @@
-TARGET = ios_video_stream
+TARGET = ios_video_screenshot
 
 all: $(TARGET)
 

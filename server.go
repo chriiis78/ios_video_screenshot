@@ -4,23 +4,27 @@ import (
     "bytes"
     "fmt"
     "html/template"
-    //"image"
+    "image"
     _ "image/jpeg"
+    "image/png"
     //"io"
+    "io/ioutil"
+    "path"
     "log"
     "net"
     "net/http"
     "os"
-    "strings"
+    //"strings"
     "sync"
-    //"time"
+    "time"
+    "os/exec"
     
     "github.com/gorilla/websocket"
     
     "go.nanomsg.org/mangos/v3"
 	  // register transports
 	  _ "go.nanomsg.org/mangos/v3/transport/all"
-	  uj "github.com/nanoscopic/ujsonin/mod"
+	  //uj "github.com/nanoscopic/ujsonin/mod"
 )
 
 func callback( r *http.Request ) bool {
@@ -66,7 +70,7 @@ type Stats struct {
     waitCnt int
 }
 
-func startJpegServer( inSock mangos.Socket, stopChannel chan bool, mirrorPort string, tunName string, secure bool, cert string, key string, coordinator string, udid string ) {
+func startScreenshotServer( inSock mangos.Socket, stopChannel chan bool, mirrorPort string, tunName string, secure bool, cert string, key string, coordinator string, udid string ) {
     var err error
     
     ifaces, err := net.Interfaces()
@@ -122,7 +126,11 @@ func startJpegServer( inSock mangos.Socket, stopChannel chan bool, mirrorPort st
     
     sentSize := false
     discard := true
-    
+
+    // create cache folder for screenshots
+    dirname := "./cache/" + udid
+    _ = os.Mkdir(dirname, os.ModePerm)
+
     go func() {
         imgnum := 1
         
@@ -140,63 +148,80 @@ func startJpegServer( inSock mangos.Socket, stopChannel chan bool, mirrorPort st
                     } 
                 default: // this makes the above read from stopChannel non-blocking
             }
-            
-            msg, err := inSock.RecvMsg()
 
-            if err != nil && err ==  mangos.ErrRecvTimeout {
-                continue
-            }
-            
             if discard && sentSize {
                 statLock.Lock()
                 stats.dumped++
                 statLock.Unlock()
-                      
-                msg.Free()
+
                 continue
             }
             
-            clickScale := 1000
-            
-            imgMsg := ImgMsg{}
-            
-            // image is prepended by some JSON metadata
-            if msg.Body[0] == '{' {
-                endi := strings.Index( string(msg.Body), "}" )
-                //fmt.Printf( "out:[" + string( msg.Body[:endi+1] ) + "]" )
-                root, left := uj.Parse( msg.Body )
-                if ( len(msg.Body ) - len( left ) - 1 ) != endi {
-                    fmt.Printf( "size mistmatched what was parsed: %d != %d\n", endi, len( msg.Body ) - len(left) - 1 )
-                }
-                imgMsg.data = left
-                
-                ow := root.Get("ow").Int()
-                //oh := root.Get("og").Int()
-                dw := root.Get("dw").Int()
-                dh := root.Get("dh").Int()
-                if ow != dw {
-                    clickScale = ow / dw * 1000
-                }
-                
-                imgMsg.msg = fmt.Sprintf("Width: %d, Height: %d, Clickscale: %d, Size: %d\n", dw, dh, clickScale, len( msg.Body ) )
-                
-                if !sentSize {
-                    dataReader := bytes.NewBuffer( []byte( fmt.Sprintf( `{"type":"frame1","width":%d,"height":%d,"clickScale":%d,"uuid":"%s"}`, dw, dh, clickScale, udid ) ) )
-                    http.Post("http://"+coordinator+"/frame", "application/json", dataReader  )
-                    sentSize = true
-                }
-            } else {
-                imgMsg.data = msg.Body
-            }
-            
             if !discard {
+                // find cache folder
+                dir, err := ioutil.ReadDir(dirname)
+                if err != nil {
+                    fmt.Printf(err.Error())
+                }
+
+                // remove all previous screenshots
+                for _, d := range dir {
+                    os.RemoveAll(path.Join([]string{dirname, d.Name()}...))
+                }
+
+                // take screenshot of the device
+                cmd := exec.Command("idevicescreenshot", "-u", udid)
+                cmd.Dir = dirname
+                _, err = cmd.Output()
+                if err != nil {
+                    fmt.Printf(err.Error())
+                }
+
+                // get screenshot filename
+                files, err := ioutil.ReadDir(dirname)
+                if err != nil {
+                    fmt.Printf(err.Error())
+                }
+                if len(files) == 0 {
+                    fmt.Printf("No screenshot in folder")
+                    continue
+                }
+                filename := files[len(files)-1].Name()
+                fmt.Printf("%s\n", filename)
+                
+                // get screenshot file
+                infile, err := os.Open(dirname + "/" + filename)
+                if err != nil {
+                    fmt.Printf("fileerror: %s", err.Error())
+                    panic(err.Error())
+                }
+
+                // decode file to image
+                src, _, err := image.Decode(infile)
+                infile.Close()
+                if err != nil {
+                    fmt.Printf("imgerror: %s", err.Error())
+                    panic(err.Error())
+                }
+
+                // encode image to bytes
+                buf := new(bytes.Buffer)
+                err = png.Encode(buf, src)
+                if err != nil {
+                    fmt.Printf("pngerror: %s", err.Error())
+                    panic(err.Error())
+                }
+
+                // send screenshot to websocket
+                imgMsg := ImgMsg{}
+                imgMsg.data = buf.Bytes()
                 imgMsg.imgNum = imgnum
                 imgCh <- imgMsg
-                msg.Free()
+
             } else {
-                msg.Free()
+                time.Sleep(3 * time.Second)
             }
-            
+
             statLock.Lock()
             stats.recv++
             statLock.Unlock()
