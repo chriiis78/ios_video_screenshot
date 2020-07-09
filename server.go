@@ -255,6 +255,13 @@ func startScreenshotServer( inSock mangos.Socket, stopChannel chan bool, mirrorP
                     continue
                 }
 
+                if err := cmd.Wait(); err != nil {
+                    fmt.Printf("cmd wait error: %s", err.Error())
+                    //panic(err.Error())
+                    time.Sleep(3 * time.Second)
+                    continue
+                }
+
                 s := string(output)
                 unbased, err := base64.StdEncoding.DecodeString(s)
                 if err != nil {
