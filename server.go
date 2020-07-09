@@ -1,23 +1,25 @@
 package main
 
 import (
-    "bytes"
+    //"bytes"
     "fmt"
     "html/template"
-    "image"
+    //"image"
     _ "image/jpeg"
-    "image/png"
+    //"image/png"
     //"io"
-    "io/ioutil"
-    "path"
+    //"io/ioutil"
+    //"path"
     "log"
     "net"
     "net/http"
     "os"
     //"strings"
+    "encoding/base64"
     "sync"
     "time"
     "os/exec"
+    "bufio"
     
     "github.com/gorilla/websocket"
     
@@ -127,9 +129,11 @@ func startScreenshotServer( inSock mangos.Socket, stopChannel chan bool, mirrorP
     sentSize := false
     discard := true
 
+    /*
     // create cache folder for screenshots
     dirname := "./cache/" + udid
     _ = os.Mkdir(dirname, os.ModePerm)
+    */
 
     go func() {
         imgnum := 1
@@ -158,6 +162,7 @@ func startScreenshotServer( inSock mangos.Socket, stopChannel chan bool, mirrorP
             }
             
             if !discard {
+                /*
                 // find cache folder
                 dir, err := ioutil.ReadDir(dirname)
                 if err != nil {
@@ -211,13 +216,62 @@ func startScreenshotServer( inSock mangos.Socket, stopChannel chan bool, mirrorP
                     fmt.Printf("pngerror: %s", err.Error())
                     panic(err.Error())
                 }
+                */
 
+                cmd := exec.Command("./repos/libimobiledevice/tools/idevicescreenshot", "-u", udid)
+                stdout, err := cmd.StdoutPipe()
+                if err != nil {
+                    fmt.Printf("pipeerror: %s", err.Error())
+                    //panic(err.Error())
+                    time.Sleep(3 * time.Second)
+                    continue
+                }
+
+                // start the command after having set up the pipe
+                err = cmd.Start()
+                if err != nil {
+                    fmt.Printf("exec start error: %s", err.Error())
+                    //panic(err.Error())
+                    time.Sleep(3 * time.Second)
+                    continue
+                }
+
+                // read command's stdout line by line
+                in := bufio.NewReader(stdout)
+                
+                var (isPrefix bool = true
+                    errreadline error = nil
+                    line, output []byte
+                   )
+                for isPrefix && errreadline == nil {
+                    line, isPrefix, errreadline = in.ReadLine()
+                    //fmt.Printf("line \n")
+                    output = append(output, line...)
+                }
+                if errreadline != nil {
+                    fmt.Printf("errreadline: %s", errreadline.Error())
+                    //panic(err.Error())
+                    time.Sleep(3 * time.Second)
+                    continue
+                }
+
+                s := string(output)
+                unbased, err := base64.StdEncoding.DecodeString(s)
+                if err != nil {
+                    fmt.Printf("decode b64 error: %s", err.Error())
+                    //panic(err.Error())
+                    time.Sleep(3 * time.Second)
+                    continue
+                }
+
+                fmt.Printf("Got image\n")
+                
                 // send screenshot to websocket
                 imgMsg := ImgMsg{}
-                imgMsg.data = buf.Bytes()
+                imgMsg.data = unbased
                 imgMsg.imgNum = imgnum
                 imgCh <- imgMsg
-
+                
             } else {
                 time.Sleep(3 * time.Second)
             }
