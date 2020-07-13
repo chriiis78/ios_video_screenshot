@@ -218,7 +218,7 @@ func startScreenshotServer( inSock mangos.Socket, stopChannel chan bool, mirrorP
                 }
                 */
 
-                cmd := exec.Command("./repos/libimobiledevice/tools/idevicescreenshot", "-u", udid)
+                cmd := exec.Command("./repos/libimobiledevice/tools/idevicescreenshot", "-o", "-u", udid)
                 stdout, err := cmd.StdoutPipe()
                 if err != nil {
                     fmt.Printf("pipeerror: %s", err.Error())

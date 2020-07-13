@@ -2,7 +2,6 @@ github.com/Microsoft/go-winio v0.4.11 h1:zoIOcVf0xPN1tnMVbTtEdI+P8OofVk3NObnwOQ6
 github.com/Microsoft/go-winio v0.4.11/go.mod h1:VhR8bwka0BXejwEJY73c50VrPtXAaKcyvVC4A4RozmA=
 github.com/cheekybits/genny v1.0.0/go.mod h1:+tQajlRqAUrPI7DOSpB0XAqZYtQakVtB7wXkRAgjxjQ=
 github.com/danielpaulus/go-ios v0.0.0-20190926190740-cc977db05eea/go.mod h1:/I8WMN9JIALHl5vtg939USw/gDASCwlC9D+K10QdGB4=
-github.com/danielpaulus/gst v0.0.0-20200201205042-e6d2974fceb8/go.mod h1:JbhjLST5AaUXpKQK65g9144BK8QHftbpuFoYuhDuONw=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815/go.mod h1:WwZ+bS3ebgob9U8Nd0kOddGdZWjyMGR8Wziv+TBNwSE=
@@ -10,7 +9,6 @@ github.com/fsnotify/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMo
 github.com/gdamore/optopia v0.2.0/go.mod h1:YKYEwo5C1Pa617H7NlPcmQXl+vG6YnSSNB44n8dNL0Q=
 github.com/golang/mock v1.2.0/go.mod h1:oTYuIxOrZwtPieC+H1uAHpcLFnEyAGVDL/k47Jfbm0A=
 github.com/golang/protobuf v1.2.0/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
-github.com/google/gousb v0.0.0-20190812193832-18f4c1d8a750 h1:DVKHLo3yE4psTjD9aM2pY7EHoicaQbgmaxxvvHC6ZSM=
 github.com/google/gousb v0.0.0-20190812193832-18f4c1d8a750/go.mod h1:Tl4HdAs1ThE3gECkNwz+1MWicX6FXddhJEw7L8jRDiI=
 github.com/gorilla/websocket v1.4.1/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/gorilla/websocket v1.4.2 h1:+/TMaTYc4QFitKJxsQ7Yye35DkWvkdLcvGKqM+x0Ufc=
@@ -22,12 +20,8 @@ github.com/konsorten/go-windows-terminal-sequences v1.0.1/go.mod h1:T0+1ngSBFLxv
 github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
-github.com/lijo-jose/glib v0.0.0-20191012030101-93ee72d7d646/go.mod h1:wzypjnJX+g/LKnKDVvJni/u0gNlQestTwv6Kt/Qf3fk=
 github.com/lucas-clemente/quic-go v0.7.1-0.20190401152353-907071221cf9/go.mod h1:PpMmPfPKO9nKJ/psF49ESTAGQSdfXxlg1otPbEB2nOw=
 github.com/marten-seemann/qtls v0.2.3/go.mod h1:xzjG7avBwGGbdZ8dTGxlBnLArsVKLvwmjgmPuiQEcYk=
-github.com/nanoscopic/ujsonin v1.1.0 h1:w2IoDngW3p7K1Dj2xqrSoX/G+3sGEmczSicL750nzVI=
-github.com/nanoscopic/ujsonin v1.1.0/go.mod h1:Q/8hEeydgTJwpaZyL3UREl3U44P01CI5VAL6ueB47dI=
-github.com/nanoscopic/ujsonin v1.5.0 h1:pnbQ6jHsfDm9O/wWLkszM3n73ETeHrsutf7LV3gTTro=
 github.com/nanoscopic/ujsonin v1.5.0/go.mod h1:FyHvuWes/DhijYGBTtQB74enYOLiHodd3M3waNV3gWU=
 github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/ginkgo v1.7.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
@@ -62,7 +56,6 @@ github.com/stretchr/objx v0.1.1/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
-github.com/tmobile/stf_ios_mirrorfeed/mirrorfeed/mods/mjpeg v0.0.0-20200109223406-fc86e617c1c5/go.mod h1:g2Z8fnPWJ5xiSDsZieY3fzGGcAQPJI6gO8fSWAIx+q8=
 go.nanomsg.org/mangos/v3 v3.0.1 h1:xR8nca0ZeAvwsoRWjeEHuR2/B0N+Po/ZJpGNCpDz6To=
 go.nanomsg.org/mangos/v3 v3.0.1/go.mod h1:RxVwsn46YtfJ74mF8MeVo+MFjg545KCI50NuZrFXmzc=
 golang.org/x/crypto v0.0.0-20180904163835-0709b304e793/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
