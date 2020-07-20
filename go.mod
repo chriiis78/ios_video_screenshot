@@ -14,4 +14,5 @@ require (
 	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.4.0 // indirect
 	go.nanomsg.org/mangos/v3 v3.0.1
+	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 )

@@ -1,12 +1,12 @@
 package main
 
 import (
-    //"bytes"
+    "bytes"
     "fmt"
     "html/template"
-    //"image"
-    _ "image/jpeg"
-    //"image/png"
+    "image"
+    "image/jpeg"
+    _ "image/png"
     //"io"
     //"io/ioutil"
     //"path"
@@ -20,7 +20,7 @@ import (
     "time"
     "os/exec"
     "bufio"
-    
+    "github.com/nfnt/resize"
     "github.com/gorilla/websocket"
     
     "go.nanomsg.org/mangos/v3"
@@ -273,9 +273,29 @@ func startScreenshotServer( inSock mangos.Socket, stopChannel chan bool, mirrorP
 
                 fmt.Printf("Got image\n")
                 
+                // decode file to image
+                src, _, err := image.Decode(bytes.NewReader(unbased))
+                if err != nil {
+                    fmt.Printf("imgerror: %s", err.Error())
+                    panic(err.Error())
+                }
+
+                resized := resize.Resize(500, 0, src, resize.Lanczos3)
+
+                var options jpeg.Options
+                options.Quality = 30
+
+                // encode image to bytes
+                buf := new(bytes.Buffer)
+                err = jpeg.Encode(buf, resized, &options)
+                if err != nil {
+                    fmt.Printf("pngerror: %s", err.Error())
+                    panic(err.Error())
+                }
+                
                 // send screenshot to websocket
                 imgMsg := ImgMsg{}
-                imgMsg.data = unbased
+                imgMsg.data = buf.Bytes()
                 imgMsg.imgNum = imgnum
                 imgCh <- imgMsg
                 
