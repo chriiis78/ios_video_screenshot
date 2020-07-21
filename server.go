@@ -4,9 +4,9 @@ import (
     "bytes"
     "fmt"
     "html/template"
-    "image"
+    //"image"
     "image/jpeg"
-    _ "image/png"
+    "image/png"
     //"io"
     //"io/ioutil"
     //"path"
@@ -221,7 +221,7 @@ func startScreenshotServer( inSock mangos.Socket, stopChannel chan bool, mirrorP
                 cmd := exec.Command("./repos/libimobiledevice/tools/idevicescreenshot", "-o", "-u", udid)
                 stdout, err := cmd.StdoutPipe()
                 if err != nil {
-                    fmt.Printf("pipeerror: %s", err.Error())
+                    fmt.Printf("Can't read from stdout idevicescreenshot: %s\n", err.Error())
                     //panic(err.Error())
                     time.Sleep(3 * time.Second)
                     continue
@@ -230,7 +230,7 @@ func startScreenshotServer( inSock mangos.Socket, stopChannel chan bool, mirrorP
                 // start the command after having set up the pipe
                 err = cmd.Start()
                 if err != nil {
-                    fmt.Printf("exec start error: %s", err.Error())
+                    fmt.Printf("Exec start error: %s\n", err.Error())
                     //panic(err.Error())
                     time.Sleep(3 * time.Second)
                     continue
@@ -249,14 +249,14 @@ func startScreenshotServer( inSock mangos.Socket, stopChannel chan bool, mirrorP
                     output = append(output, line...)
                 }
                 if errreadline != nil {
-                    fmt.Printf("errreadline: %s", errreadline.Error())
+                    fmt.Printf("errreadline: %s\n", errreadline.Error())
                     //panic(err.Error())
                     time.Sleep(3 * time.Second)
                     continue
                 }
 
                 if err := cmd.Wait(); err != nil {
-                    fmt.Printf("cmd wait error: %s", err.Error())
+                    fmt.Printf("cmd wait error: %s\n", err.Error())
                     //panic(err.Error())
                     time.Sleep(3 * time.Second)
                     continue
@@ -265,7 +265,7 @@ func startScreenshotServer( inSock mangos.Socket, stopChannel chan bool, mirrorP
                 s := string(output)
                 unbased, err := base64.StdEncoding.DecodeString(s)
                 if err != nil {
-                    fmt.Printf("decode b64 error: %s", err.Error())
+                    fmt.Printf("Decode b64 image error: %\n", err.Error())
                     //panic(err.Error())
                     time.Sleep(3 * time.Second)
                     continue
@@ -274,9 +274,9 @@ func startScreenshotServer( inSock mangos.Socket, stopChannel chan bool, mirrorP
                 fmt.Printf("Got image\n")
                 
                 // decode file to image
-                src, _, err := image.Decode(bytes.NewReader(unbased))
+                src, err := png.Decode(bytes.NewReader(unbased))
                 if err != nil {
-                    fmt.Printf("imgerror: %s", err.Error())
+                    fmt.Printf("Decode image error: %s\n", err.Error())
                     panic(err.Error())
                 }
 
@@ -289,7 +289,7 @@ func startScreenshotServer( inSock mangos.Socket, stopChannel chan bool, mirrorP
                 buf := new(bytes.Buffer)
                 err = jpeg.Encode(buf, resized, &options)
                 if err != nil {
-                    fmt.Printf("pngerror: %s", err.Error())
+                    fmt.Printf("Encode image error: %s\n", err.Error())
                     panic(err.Error())
                 }
                 
