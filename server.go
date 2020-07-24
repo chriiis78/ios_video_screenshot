@@ -138,6 +138,34 @@ func startScreenshotServer( inSock mangos.Socket, stopChannel chan bool, mirrorP
     go func() {
         imgnum := 1
         
+        cmd := exec.Command("./repos/libimobiledevice/tools/idevicescreenshot", "-o", "-u", udid, "-i")
+        stdout, err := cmd.StdoutPipe()
+        if err != nil {
+            fmt.Printf("Can't read from stdout idevicescreenshot: %s\n", err.Error())
+            //panic(err.Error())
+            time.Sleep(3 * time.Second)
+            return
+        }
+        stdin, err := cmd.StdinPipe()
+        if err != nil {
+            fmt.Printf("Can't write to stdin idevicescreenshot: %s\n", err.Error())
+            //panic(err.Error())
+            time.Sleep(3 * time.Second)
+            return
+        }
+
+        // read command's stdout line by line
+        in := bufio.NewReader(stdout)
+
+        // start the command after having set up the pipe
+        err = cmd.Start()
+        if err != nil {
+            fmt.Printf("Exec start error: %s\n", err.Error())
+            //panic(err.Error())
+            time.Sleep(3 * time.Second)
+            return
+        }
+
         LOOP:
         for {
             select {
@@ -218,45 +246,22 @@ func startScreenshotServer( inSock mangos.Socket, stopChannel chan bool, mirrorP
                 }
                 */
 
-                cmd := exec.Command("./repos/libimobiledevice/tools/idevicescreenshot", "-o", "-u", udid)
-                stdout, err := cmd.StdoutPipe()
-                if err != nil {
-                    fmt.Printf("Can't read from stdout idevicescreenshot: %s\n", err.Error())
-                    //panic(err.Error())
-                    time.Sleep(3 * time.Second)
-                    continue
-                }
+                stdin.Write([]byte("i\n"))
 
-                // start the command after having set up the pipe
-                err = cmd.Start()
-                if err != nil {
-                    fmt.Printf("Exec start error: %s\n", err.Error())
-                    //panic(err.Error())
-                    time.Sleep(3 * time.Second)
-                    continue
-                }
-
-                // read command's stdout line by line
-                in := bufio.NewReader(stdout)
-                
                 var (isPrefix bool = true
                     errreadline error = nil
                     line, output []byte
                    )
                 for isPrefix && errreadline == nil {
                     line, isPrefix, errreadline = in.ReadLine()
-                    //fmt.Printf("line \n")
+                    //fmt.Printf("line %s\n", line)
+                    if bytes.Contains(line, []byte("i (")) {
+                        continue LOOP
+                    }
                     output = append(output, line...)
                 }
                 if errreadline != nil {
                     fmt.Printf("errreadline: %s\n", errreadline.Error())
-                    //panic(err.Error())
-                    time.Sleep(3 * time.Second)
-                    continue
-                }
-
-                if err := cmd.Wait(); err != nil {
-                    fmt.Printf("cmd wait error: %s\n", err.Error())
                     //panic(err.Error())
                     time.Sleep(3 * time.Second)
                     continue
@@ -308,6 +313,12 @@ func startScreenshotServer( inSock mangos.Socket, stopChannel chan bool, mirrorP
             statLock.Unlock()
 
             imgnum++
+        }
+        if err := cmd.Wait(); err != nil {
+            fmt.Printf("cmd wait error: %s\n", err.Error())
+            //panic(err.Error())
+            time.Sleep(3 * time.Second)
+            return
         }
     }()
     
