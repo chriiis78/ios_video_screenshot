@@ -21,6 +21,7 @@ func main() {
     var pullSpec   = flag.String( "pullSpec" , "tcp://127.0.0.1:7879", "NanoMsg spec to pull jpeg frames from" )
     var iface      = flag.String( "interface", "none"                , "Network interface to listen on" )
     var port       = flag.String( "port"     , "8000"                , "Network port to listen on" )
+    var wdaport    = flag.String( "wdaport"  , "8100"                , "WDA Port" )
     var verbose    = flag.Bool(   "v"        , false                 , "Verbose Debugging" )
     var secure     = flag.Bool( "secure"     , false                 , "Secure HTTPS mode" )
     var cert       = flag.String( "cert"     , "https-server.crt"    , "Cert for HTTP" )
@@ -37,20 +38,20 @@ func main() {
     }
 
     if *streamCmd {
-        stream( *pullSpec, *udid, *iface, *port, *secure, *cert, *key, *coordinator )
+        stream( *pullSpec, *udid, *iface, *port, *wdaport, *secure, *cert, *key, *coordinator )
     } else {
         flag.Usage()
     }
 }
 
-func stream( pullSpec string, udid string, tunName string, port string, secure bool, cert string, key string, coordinator string ) {
+func stream( pullSpec string, udid string, tunName string, port string, wdaport string, secure bool, cert string, key string, coordinator string ) {
     pullSock := setup_nanomsg_sockets( pullSpec )    
     
     stopChannel := make( chan bool )
     stopChannel2 := make( chan bool )
     waitForSigInt( stopChannel, stopChannel2 )
     
-    startScreenshotServer( pullSock, stopChannel2, port, tunName, secure, cert, key, coordinator, udid )
+    startScreenshotServer( pullSock, stopChannel2, port, wdaport, tunName, secure, cert, key, coordinator, udid )
         
     <- stopChannel
 }

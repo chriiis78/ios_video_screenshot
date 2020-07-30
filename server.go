@@ -4,10 +4,11 @@ import (
     "bytes"
     "fmt"
     "html/template"
+    "encoding/json"
     //"image"
     "image/jpeg"
     "image/png"
-    //"io"
+    "io"
     //"io/ioutil"
     //"path"
     "log"
@@ -59,6 +60,11 @@ type MainMsg struct {
     msg int
 }
 
+type WdaResult struct {
+    Value string `json:"value"`
+    SessionId string `json:"sessionId"`
+}
+
 const (
     BeginDiscard = iota
     EndDiscard
@@ -72,7 +78,7 @@ type Stats struct {
     waitCnt int
 }
 
-func startScreenshotServer( inSock mangos.Socket, stopChannel chan bool, mirrorPort string, tunName string, secure bool, cert string, key string, coordinator string, udid string ) {
+func startScreenshotServer( inSock mangos.Socket, stopChannel chan bool, mirrorPort string, wdaport string, tunName string, secure bool, cert string, key string, coordinator string, udid string ) {
     var err error
     
     ifaces, err := net.Interfaces()
@@ -166,6 +172,9 @@ func startScreenshotServer( inSock mangos.Socket, stopChannel chan bool, mirrorP
             return
         }
 
+        wdaTimeoutCount := 0
+        wdaTimeoutDelay := 3
+
         LOOP:
         for {
             select {
@@ -245,38 +254,143 @@ func startScreenshotServer( inSock mangos.Socket, stopChannel chan bool, mirrorP
                     panic(err.Error())
                 }
                 */
+                
+                imgPull := make(chan string, 1)
 
-                stdin.Write([]byte("i\n"))
+                if wdaTimeoutCount % 50 == 0 {
+                    wdaTimeoutDelay = 3
+                } else {
+                    wdaTimeoutDelay = 0
+                }
 
-                var (isPrefix bool = true
-                    errreadline error = nil
-                    line, output []byte
-                   )
-                for isPrefix && errreadline == nil {
-                    line, isPrefix, errreadline = in.ReadLine()
-                    //fmt.Printf("line %s\n", line)
-                    if bytes.Contains(line, []byte("i (")) {
-                        continue LOOP
+                if (wdaTimeoutDelay == 3) {
+                    go func() {
+                        cmdwda := exec.Command("curl", "http://localhost:" + wdaport + "/screenshot")
+                        stdoutwda, err := cmdwda.StdoutPipe()
+                        if err != nil {
+                            fmt.Printf("Can't read from stdout curl: %s\n", err.Error())
+                            //panic(err.Error())
+                            time.Sleep(3 * time.Second)
+                            return
+                        }
+    
+                        // read command's stdout line by line
+                        inwda := bufio.NewReader(stdoutwda)
+                
+                        // start the command after having set up the pipe
+                        err = cmdwda.Start()
+                        if err != nil {
+                            fmt.Printf("Exec start error: %s\n", err.Error())
+                            //panic(err.Error())
+                            time.Sleep(3 * time.Second)
+                            return
+                        }
+    
+                        //stdin.Write([]byte("i\n"))
+    
+                        var (output []byte
+                            errreadline error = nil
+                        )
+                        for {
+                            var (isPrefix bool = true
+                                line []byte
+                            )
+                            for isPrefix && errreadline == nil {
+                                line, isPrefix, errreadline = inwda.ReadLine()
+                                //fmt.Printf("line %s\n", line)
+                                output = append(output, line...)
+                            }
+                            
+                            if errreadline != nil {
+                                break
+                            }
+                        }
+    
+                        if errreadline != io.EOF {
+                            fmt.Printf("errreadline: %s\n", errreadline.Error())
+                            //panic(err.Error())
+                            time.Sleep(3 * time.Second)
+                            return
+                        }
+    
+                        if err := cmdwda.Wait(); err != nil {
+                            fmt.Printf("cmdwda wait error: %s\n", err.Error())
+                            //panic(err.Error())
+                            time.Sleep(3 * time.Second)
+                            return
+                        }
+    
+                        wdaresult := WdaResult{}
+                        
+                        json.Unmarshal(output, &wdaresult)
+                        
+                        if wdaresult.Value == "" {
+                            fmt.Printf("wda image fail\n")
+                            time.Sleep(3 * time.Second)
+                        } else {
+                            imgPull <- wdaresult.Value
+                        }
+
+                    }()
+                }
+                
+                var s string
+                select {
+                case img := <-imgPull:
+                    fmt.Printf("Got wda image\n")
+                    s = string(img)
+                case <-time.After(time.Duration(wdaTimeoutDelay) * time.Second):
+                    fmt.Printf("wda timeout\n")
+                    wdaTimeoutCount++
+
+                    var (output []byte
+                        errreadline error = nil
+                    )
+                    for len(output) == 0 {
+                        errreadline = nil
+                        fmt.Printf("stdin i\n")
+                        stdin.Write([]byte("i\n"))
+                        //time.Sleep(3 * time.Second)
+                        fmt.Printf("go\n")
+
+                        var (isPrefix bool = true
+                            line []byte
+                        )
+                        for isPrefix && errreadline == nil {
+                            fmt.Printf("readline\n")
+                            line, isPrefix, errreadline = in.ReadLine()
+                            fmt.Printf("line %c%c%c%c%c\n", line[0], line[1], line[2], line[3], line[4])
+                            //fmt.Printf("line\n")
+                            if bytes.Contains(line, []byte("i (")) {
+                                fmt.Printf("iii\n")
+                                break
+                            }
+                            output = append(output, line...)
+                        }
+                        if errreadline != nil {
+                            break
+                        }
+                        fmt.Printf("a\n")
                     }
-                    output = append(output, line...)
-                }
-                if errreadline != nil {
-                    fmt.Printf("errreadline: %s\n", errreadline.Error())
-                    //panic(err.Error())
-                    time.Sleep(3 * time.Second)
-                    continue
+                    fmt.Printf("b\n")
+                    if errreadline != nil {
+                        fmt.Printf("errreadline: %s\n", errreadline.Error())
+                        //panic(err.Error())
+                        time.Sleep(3 * time.Second)
+                        continue
+                    }
+
+                    fmt.Printf("Got ids image\n")
+                    s = string(output)
                 }
 
-                s := string(output)
                 unbased, err := base64.StdEncoding.DecodeString(s)
                 if err != nil {
                     fmt.Printf("Decode b64 image error: %\n", err.Error())
-                    //panic(err.Error())
+                    panic(err.Error())
                     time.Sleep(3 * time.Second)
                     continue
                 }
-
-                fmt.Printf("Got image\n")
                 
                 // decode file to image
                 src, err := png.Decode(bytes.NewReader(unbased))
@@ -314,12 +428,12 @@ func startScreenshotServer( inSock mangos.Socket, stopChannel chan bool, mirrorP
 
             imgnum++
         }
-        if err := cmd.Wait(); err != nil {
-            fmt.Printf("cmd wait error: %s\n", err.Error())
-            //panic(err.Error())
-            time.Sleep(3 * time.Second)
-            return
-        }
+        // if err := cmd.Wait(); err != nil {
+        //     fmt.Printf("cmd wait error: %s\n", err.Error())
+        //     //panic(err.Error())
+        //     time.Sleep(3 * time.Second)
+        //     return
+        // }
     }()
     
     startServer( imgCh, mainCh, &lock, &statLock, &stats, listen_addr, secure, cert, key )
