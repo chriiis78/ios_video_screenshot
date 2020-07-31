@@ -144,34 +144,6 @@ func startScreenshotServer( inSock mangos.Socket, stopChannel chan bool, mirrorP
     go func() {
         imgnum := 1
         
-        cmd := exec.Command("./repos/libimobiledevice/tools/idevicescreenshot", "-o", "-u", udid, "-i")
-        stdout, err := cmd.StdoutPipe()
-        if err != nil {
-            fmt.Printf("Can't read from stdout idevicescreenshot: %s\n", err.Error())
-            //panic(err.Error())
-            time.Sleep(3 * time.Second)
-            return
-        }
-        stdin, err := cmd.StdinPipe()
-        if err != nil {
-            fmt.Printf("Can't write to stdin idevicescreenshot: %s\n", err.Error())
-            //panic(err.Error())
-            time.Sleep(3 * time.Second)
-            return
-        }
-
-        // read command's stdout line by line
-        in := bufio.NewReader(stdout)
-
-        // start the command after having set up the pipe
-        err = cmd.Start()
-        if err != nil {
-            fmt.Printf("Exec start error: %s\n", err.Error())
-            //panic(err.Error())
-            time.Sleep(3 * time.Second)
-            return
-        }
-
         wdaTimeoutCount := 0
         wdaTimeoutDelay := 3
 
@@ -343,41 +315,49 @@ func startScreenshotServer( inSock mangos.Socket, stopChannel chan bool, mirrorP
                     fmt.Printf("wda timeout\n")
                     wdaTimeoutCount++
 
+                    cmd := exec.Command("./repos/libimobiledevice/tools/idevicescreenshot", "-o", "-u", udid)
+                    stdout, err := cmd.StdoutPipe()
+                    if err != nil {
+                        fmt.Printf("Can't read from stdout idevicescreenshot: %s\n", err.Error())
+                        //panic(err.Error())
+                        time.Sleep(3 * time.Second)
+                        return
+                    }
+
+                    // read command's stdout line by line
+                    in := bufio.NewReader(stdout)
+
+                    // start the command after having set up the pipe
+                    err = cmd.Start()
+                    if err != nil {
+                        fmt.Printf("Exec start error: %s\n", err.Error())
+                        //panic(err.Error())
+                        time.Sleep(3 * time.Second)
+                        return
+                    }
+
                     var (output []byte
                         errreadline error = nil
+                        isPrefix bool = true
+                        line []byte
                     )
-                    for len(output) == 0 {
-                        errreadline = nil
-                        fmt.Printf("stdin i\n")
-                        stdin.Write([]byte("i\n"))
-                        //time.Sleep(3 * time.Second)
-                        fmt.Printf("go\n")
-
-                        var (isPrefix bool = true
-                            line []byte
-                        )
-                        for isPrefix && errreadline == nil {
-                            fmt.Printf("readline\n")
-                            line, isPrefix, errreadline = in.ReadLine()
-                            fmt.Printf("line %c%c%c%c%c\n", line[0], line[1], line[2], line[3], line[4])
-                            //fmt.Printf("line\n")
-                            if bytes.Contains(line, []byte("i (")) {
-                                fmt.Printf("iii\n")
-                                break
-                            }
-                            output = append(output, line...)
-                        }
-                        if errreadline != nil {
-                            break
-                        }
-                        fmt.Printf("a\n")
+                    for isPrefix && errreadline == nil {
+                        line, isPrefix, errreadline = in.ReadLine()
+                        //fmt.Printf("line %c%c%c%c%c\n", line[0], line[1], line[2], line[3], line[4])
+                        fmt.Printf("line\n")
+                        output = append(output, line...)
                     }
-                    fmt.Printf("b\n")
                     if errreadline != nil {
                         fmt.Printf("errreadline: %s\n", errreadline.Error())
                         //panic(err.Error())
                         time.Sleep(3 * time.Second)
                         continue
+                    }
+                    if err := cmd.Wait(); err != nil {
+                        fmt.Printf("cmd wait error: %s\n", err.Error())
+                        //panic(err.Error())
+                        time.Sleep(3 * time.Second)
+                        return
                     }
 
                     fmt.Printf("Got ids image\n")
@@ -428,12 +408,6 @@ func startScreenshotServer( inSock mangos.Socket, stopChannel chan bool, mirrorP
 
             imgnum++
         }
-        // if err := cmd.Wait(); err != nil {
-        //     fmt.Printf("cmd wait error: %s\n", err.Error())
-        //     //panic(err.Error())
-        //     time.Sleep(3 * time.Second)
-        //     return
-        // }
     }()
     
     startServer( imgCh, mainCh, &lock, &statLock, &stats, listen_addr, secure, cert, key )
